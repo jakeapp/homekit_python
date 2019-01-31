@@ -37,7 +37,7 @@ if __name__ == '__main__':
         print('Name: {name}'.format(name=info['name']))
         print('Url: http_impl://{ip}:{port}'.format(ip=info['address'], port=info['port']))
         print('Configuration number (c#): {conf}'.format(conf=info['c#']))
-        print('Feature Flags (ff): {f} (Flag: {flags})'.format(f=info['flags'], flags=info['ff']))
+   #     print('Feature Flags (ff): {f} (Flag: {flags})'.format(f=info['flags'], flags=info['ff']))
         print('Device ID (id): {id}'.format(id=info['id']))
         print('Model Name (md): {md}'.format(md=info['md']))
         print('Protocol Version (pv): {pv}'.format(pv=info['pv']))
