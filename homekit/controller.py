@@ -28,7 +28,7 @@ from homekit.protocol.statuscodes import HapStatusCodes
 from homekit.exceptions import AccessoryNotFoundError, ConfigLoadingError, UnknownError, UnpairedError, \
     AuthenticationError, ConfigSavingError, AlreadyPairedError, FormatError, AccessoryDisconnectedError
 from homekit.http_impl.secure_http import SecureHttp
-from homekit.protocol import get_session_keys, perform_pair_setup
+from homekit.protocol import get_session_keys, perform_pair_setup, request_pin_setup
 from homekit.protocol.tlv import TLV, TlvParseException
 from homekit.model.characteristics import CharacteristicsTypes, CharacteristicFormats
 
@@ -59,7 +59,7 @@ class Controller(object):
          * md: the model name of the accessory (required)
          * pv: the protocol version
          * s#: the current state number (required)
-         * sf / statusflags: the status flag (see table 5-9 page 70)
+         * sf: the status flag (see table 5-9 page 70)
          * ci/category: the category identifier in numerical and human readable form. For more information see table
                         12-3 page 254 or homekit.Categories (required)
 
@@ -190,6 +190,19 @@ class Controller(object):
         conn = HomeKitHTTPConnection(connection_data['ip'], port=connection_data['port'])
         try:
             pairing = perform_pair_setup(conn, pin, str(uuid.uuid4()))
+        finally:
+            conn.close()
+        pairing['AccessoryIP'] = connection_data['ip']
+        pairing['AccessoryPort'] = connection_data['port']
+        self.pairings[alias] = Pairing(pairing)
+
+    def request_pin(self, alias, accessory_id):
+        connection_data = find_device_ip_and_port(accessory_id)
+        if connection_data is None:
+            raise AccessoryNotFoundError('Cannot find accessory with id "{i}".'.format(i=accessory_id))
+        conn = HomeKitHTTPConnection(connection_data['ip'], port=connection_data['port'])
+        try:
+            pairing = request_pin_setup(conn, str(uuid.uuid4()))
         finally:
             conn.close()
         pairing['AccessoryIP'] = connection_data['ip']
