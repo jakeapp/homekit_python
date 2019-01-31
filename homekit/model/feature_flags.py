@@ -26,9 +26,9 @@ class _FeatureFlags(object):
             1: 'Supports HAP Pairing'
         }
 
-"""
-Removed below as device conflicts
-"""
+    """
+    Removed below as device conflicts
+    """
   #  def __getitem__(self, item):
   #      if item in self._data:
   #          return self._data[item]
