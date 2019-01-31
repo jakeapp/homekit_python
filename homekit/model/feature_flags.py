@@ -26,11 +26,14 @@ class _FeatureFlags(object):
             1: 'Supports HAP Pairing'
         }
 
-    def __getitem__(self, item):
-        if item in self._data:
-            return self._data[item]
+"""
+Removed below as device conflicts
+"""
+  #  def __getitem__(self, item):
+  #      if item in self._data:
+  #          return self._data[item]
 
-        raise KeyError('Item {item} not found'.format(item=item))
+  #      raise KeyError('Item {item} not found'.format(item=item))
 
 
 FeatureFlags = _FeatureFlags()
