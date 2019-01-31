@@ -4,11 +4,10 @@ Fork of jlisiardi's great code to add a homekit.pin function
 
 Some homekit devices require initiation from the home app to display a device generated pin code adding a function call hopefully will allow pairing... still a work in progress...
 
-only required inputs are device id
 
 Usage:
 ```bash
-python3 -m homekit.pin -d ${DEVICEID}
+python3 -m homekit.pin -d ${DEVICEID} -f ${PAIRINGDATAFILE}
 ```
 
 
