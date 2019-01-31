@@ -339,51 +339,7 @@ def request_pin_setup(connection, pin):
     response_tlv = TLV.decode_bytes(resp.read())
     
     # #
-    # # Step #7 ios (Verification) (page 47)
-    # #
-    # response_tlv = TLV.reorder(response_tlv, [TLV.kTLVType_State, TLV.kTLVType_Error, TLV.kTLVType_EncryptedData])
-    # assert response_tlv[0][0] == TLV.kTLVType_State and response_tlv[0][1] == TLV.M6, 'perform_pair_setup: State not M6'
-    # if response_tlv[1][0] == TLV.kTLVType_Error:
-    #     error_handler(response_tlv[1][1], 'step 7')
-    #
-    # assert response_tlv[1][0] == TLV.kTLVType_EncryptedData, 'perform_pair_setup: No encrypted data'
-    # decrypted_data = chacha20_aead_decrypt(bytes(), session_key, 'PS-Msg06'.encode(), bytes([0, 0, 0, 0]),
-    #                                        response_tlv[1][1])
-    # if decrypted_data is False:
-    #     raise homekit.exception.IllegalData('step 7')
-    #
-    # response_tlv = TLV.decode_bytearray(decrypted_data)
-    # response_tlv = TLV.reorder(response_tlv, [TLV.kTLVType_Identifier, TLV.kTLVType_PublicKey, TLV.kTLVType_Signature])
-    #
-    # assert response_tlv[2][0] == TLV.kTLVType_Signature, 'perform_pair_setup: No signature'
-    # accessory_sig = response_tlv[2][1]
-    #
-    # assert response_tlv[0][0] == TLV.kTLVType_Identifier, 'perform_pair_setup: No identifier'
-    # accessory_pairing_id = response_tlv[0][1]
-    #
-    # assert response_tlv[1][0] == TLV.kTLVType_PublicKey, 'perform_pair_setup: No public key'
-    # accessory_ltpk = response_tlv[1][1]
-    #
-    # hkdf_inst = hkdf.Hkdf('Pair-Setup-Accessory-Sign-Salt'.encode(),
-    #                       SrpClient.to_byte_array(srp_client.get_session_key()),
-    #                       hash=hashlib.sha512)
-    # accessory_x = hkdf_inst.expand('Pair-Setup-Accessory-Sign-Info'.encode(), 32)
-    #
-    # accessory_info = accessory_x + accessory_pairing_id + accessory_ltpk
-    #
-    # e25519s = ed25519.VerifyingKey(bytes(response_tlv[1][1]))
-    # try:
-    #     e25519s.verify(bytes(accessory_sig), bytes(accessory_info))
-    # except AssertionError:
-    #     raise InvalidSignatureError('step #7')
-    #
-    # return {
-    #     'AccessoryPairingID': response_tlv[0][1].decode(),
-    #     'AccessoryLTPK': hexlify(response_tlv[1][1]).decode(),
-    #     # 'iOSPairingId': ios_pairing_id,
-    #     'iOSDeviceLTSK': ios_device_ltsk.to_ascii(encoding='hex').decode()[:64],
-    #     'iOSDeviceLTPK': hexlify(ios_device_ltpk.to_bytes()).decode()
-    # }
+    # # Step #7 ios (Verification) (page 47)  NOT NEEDED?
 
 def get_session_keys(conn, pairing_data):
     """
