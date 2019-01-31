@@ -8,7 +8,7 @@ def setup_args_parser():
     parser.add_argument('-d', action='store', required=True, dest='device',
                         help='HomeKit Device ID (use discover to get it)')
     # parser.add_argument('-p', action='store', required=False, dest='pin', help='HomeKit configuration code')
-    parser.add_argument('-f', action='store', required=True, dest='file', help='HomeKit pairing data file')
+    parser.add_argument('-f', action='store', required=False, dest='file', help='HomeKit pairing data file')
     parser.add_argument('-a', action='store', required=False, dest='alias', help='alias for the pairing')
     return parser.parse_args()
 
