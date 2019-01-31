@@ -1,4 +1,3 @@
-#
 # Copyright 2018 Joachim Lusiardi
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -224,6 +223,124 @@ def perform_pair_setup(connection, pin, ios_pairing_id):
         'iOSDeviceLTPK': hexlify(ios_device_ltpk.to_bytes()).decode()
     }
 
+def request_pin_setup(connection, pin):
+    """
+    Requests a Pin from device
+    """
+    headers = {
+        'Content-Type': 'application/pairing+tlv8'
+    }
+
+    #
+    # Step #1 ios --> accessory (send SRP start Request) (see page 39)
+    #
+    request_tlv = TLV.encode_list([
+        (TLV.kTLVType_State, TLV.M1),
+        (TLV.kTLVType_Method, TLV.PairSetup)
+    ])
+
+    #
+    # Step #3 ios --> accessory (send SRP verify request) (see page 41)
+    #
+
+    connection.request('POST', '/pair-setup', request_tlv, headers)
+    resp = connection.getresponse()
+    response_tlv = TLV.decode_bytes(resp.read())
+
+    response_tlv = TLV.reorder(response_tlv,
+                               [TLV.kTLVType_State, TLV.kTLVType_Error, TLV.kTLVType_PublicKey, TLV.kTLVType_Salt])
+    assert response_tlv[0][0] == TLV.kTLVType_State and response_tlv[0][1] == TLV.M2, 'perform_pair_setup: State not M2'
+
+    # the errors here can be:
+    #  * kTLVError_Unavailable: Device is paired
+    #  * kTLVError_MaxTries: More than 100 unsuccessfull attempts
+    #  * kTLVError_Busy: There is already a pairing going on
+    # if response_tlv[1][0] == TLV.kTLVType_Error:
+    #     error_handler(response_tlv[1][1], 'step 3')
+
+    assert response_tlv[1][0] == TLV.kTLVType_PublicKey, 'perform_pair_setup: Not a public key'
+    assert response_tlv[2][0] == TLV.kTLVType_Salt, 'perform_pair_setup: Not a salt'
+
+    srp_client = SrpClient('Pair-Setup', pin)
+    srp_client.set_salt(response_tlv[2][1])
+    srp_client.set_server_public_key(response_tlv[1][1])
+    client_pub_key = srp_client.get_public_key()
+    client_proof = srp_client.get_proof()
+
+    response_tlv = TLV.encode_list([
+        (TLV.kTLVType_State, TLV.M3),
+        (TLV.kTLVType_PublicKey, SrpClient.to_byte_array(client_pub_key)),
+        (TLV.kTLVType_Proof, SrpClient.to_byte_array(client_proof)),
+    ])
+
+    connection.request('POST', '/pair-setup', response_tlv, headers)
+    resp = connection.getresponse()
+    response_tlv = TLV.decode_bytes(resp.read())
+
+    #
+    # Step #5 ios --> accessory (Exchange Request) (see page 43)
+    #
+
+    # M4 Verification (page 43)
+    # response_tlv = TLV.reorder(response_tlv, [TLV.kTLVType_State, TLV.kTLVType_Error, TLV.kTLVType_Proof])
+    # assert response_tlv[0][0] == TLV.kTLVType_State and response_tlv[0][1] == TLV.M4, \
+    #     'perform_pair_setup: State not M4'
+    # if response_tlv[1][0] == TLV.kTLVType_Error:
+    #     error_handler(response_tlv[1][1], 'step 5')
+
+    # assert response_tlv[1][0] == TLV.kTLVType_Proof, 'perform_pair_setup: Not a proof'
+    # if not srp_client.verify_servers_proof(response_tlv[1][1]):
+    #     raise AuthenticationError('Step #5: wrong proof!')
+
+    # M5 Request generation (page 44)
+    session_key = srp_client.get_session_key()
+
+    ios_device_ltsk, ios_device_ltpk = ed25519.create_keypair()
+
+    # reversed:
+    #   Pair-Setup-Encrypt-Salt instead of Pair-Setup-Controller-Sign-Salt
+    #   Pair-Setup-Encrypt-Info instead of Pair-Setup-Controller-Sign-Info
+    hkdf_inst = hkdf.Hkdf('Pair-Setup-Controller-Sign-Salt'.encode(), SrpClient.to_byte_array(session_key),
+                          hash=hashlib.sha512)
+    ios_device_x = hkdf_inst.expand('Pair-Setup-Controller-Sign-Info'.encode(), 32)
+
+    hkdf_inst = hkdf.Hkdf('Pair-Setup-Encrypt-Salt'.encode(), SrpClient.to_byte_array(session_key),
+                          hash=hashlib.sha512)
+    session_key = hkdf_inst.expand('Pair-Setup-Encrypt-Info'.encode(), 32)
+
+    # ios_device_pairing_id = ios_pairing_id.encode()
+    ios_device_info = ios_device_x + ios_device_ltpk.to_bytes()
+
+    ios_device_signature = ios_device_ltsk.sign(ios_device_info)
+
+    sub_tlv = [
+        # (TLV.kTLVType_Identifier, ios_device_pairing_id),
+        (TLV.kTLVType_PublicKey, ios_device_ltpk.to_bytes()),
+        (TLV.kTLVType_Signature, ios_device_signature)
+    ]
+    sub_tlv_b = TLV.encode_list(sub_tlv)
+
+    # taking tge iOSDeviceX as key was reversed from
+    # https://github.com/KhaosT/HAP-NodeJS/blob/2ea9d761d9bd7593dd1949fec621ab085af5e567/lib/HAPServer.js
+    # function handlePairStepFive calling encryption.encryptAndSeal
+    encrypted_data_with_auth_tag = chacha20_aead_encrypt(bytes(), session_key, 'PS-Msg05'.encode(), bytes([0, 0, 0, 0]),
+                                                         sub_tlv_b)
+    tmp = bytearray(encrypted_data_with_auth_tag[0])
+    tmp += encrypted_data_with_auth_tag[1]
+
+    response_tlv = [
+        (TLV.kTLVType_State, TLV.M5),
+        (TLV.kTLVType_EncryptedData, tmp)
+    ]
+    body = TLV.encode_list(response_tlv)
+
+    connection.request('POST', '/pair-setup', body, headers)
+    resp = connection.getresponse()
+    response_tlv = TLV.decode_bytes(resp.read())
+    
+    # #
+    # # Step #7 ios (Verification) (page 47)  Don't need...
+    # # In future figure a way to run task in background and return terminal access or maybe asinco it...?
 
 def get_session_keys(conn, pairing_data):
     """
