@@ -1,3 +1,17 @@
+Fork of jlisiardi's great code to add a homekit.pin function
+
+**Purpose:**
+
+Some homekit devices require initiation from the home app to display a device generated pin code adding a function call hopefully will allow pairing... still a work in progress...
+
+only required inputs are device id
+
+Usage:
+```bash
+python3 -m homekit.pin -d ${DEVICEID}
+```
+
+
 # HomeKit Python [![Build Status](https://travis-ci.org/jlusiardi/homekit_python.svg?branch=master)](https://travis-ci.org/jlusiardi/homekit_python) [![Coverage Status](https://coveralls.io/repos/github/jlusiardi/homekit_python/badge.svg?branch=master)](https://coveralls.io/github/jlusiardi/homekit_python?branch=master) [![Gitter chat](https://badges.gitter.im/gitterHQ/gitter.png)](https://gitter.im/homekit_python/community)
 
 With this code it is possible to implement either a HomeKit Accessory or simulate a
