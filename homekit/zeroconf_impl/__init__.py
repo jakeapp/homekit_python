@@ -110,7 +110,7 @@ def discover_homekit_devices(max_seconds=10):
         else:
             flags = 0
         d['ff'] = flags
-        d['flags'] = FeatureFlags[flags]
+#        d['flags'] = FeatureFlags[flags]
 
         id = get_from_properties(props, b'id', case_sensitive=False)
         if id:
